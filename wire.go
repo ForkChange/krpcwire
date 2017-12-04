@@ -23,8 +23,8 @@ type OutQuery struct {
 }
 type OutRequest struct {
 	OutQuery
-	Tid TransID
-	Y   string
+	TransID TransID
+	Y       string
 }
 
 type InRequest map[string]interface{}
@@ -88,10 +88,10 @@ func NewWire(socket *net.UDPConn, options ...option) *Wire {
 }
 
 func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) TransID {
-	tid := randomTransID(w.transIDSize)
+	transID := randomTransID(w.transIDSize)
 	message := &OutRequest{
 		OutQuery: query,
-		Tid:      tid,
+		TransID:  transID,
 		Y:        "q",
 	}
 	req := &request{
@@ -101,43 +101,41 @@ func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) TransI
 		message:   message,
 	}
 	w.send(map[string]interface{}{
-		"t": string(tid),
+		"t": string(transID),
 		"y": message.Y,
 		"q": message.Q,
 		"a": message.A,
 	}, to)
-	w.reqs.Store(tid, req)
-	return tid
+	w.reqs.Store(transID, req)
+	return transID
 }
 
-func (w *Wire) Reply(req *OutRequest, res OutResponse, to net.UDPAddr) {
+func (w *Wire) Reply(transID TransID, res OutResponse, to net.UDPAddr) {
 	w.send(map[string]interface{}{
-		"t": string(req.Tid),
+		"t": string(transID),
 		"y": "r",
 		"r": map[string]interface{}(res),
 	}, to)
 }
 
-func (w *Wire) Error(req *OutRequest, err OutError, to net.UDPAddr) {
+func (w *Wire) Error(transID TransID, err OutError, to net.UDPAddr) {
 	w.send(map[string]interface{}{
-		"t": string(req.Tid),
+		"t": string(transID),
 		"y": "e",
 		"e": []interface{}(err),
 	}, to)
 }
 
-func (w *Wire) Cancel(tid TransID) {
-	w.reqs.Delete(tid)
+func (w *Wire) Cancel(transID TransID) {
+	w.reqs.Delete(transID)
 }
 
 func (w *Wire) listen() {
 	buf := make([]byte, 8192)
 	for {
-		n, from, err := w.socket.ReadFromUDP(buf)
-		if err != nil {
-			continue
+		if n, from, err := w.socket.ReadFromUDP(buf); err == nil {
+			go w.onMessage(buf[:n], *from)
 		}
-		go w.onMessage(buf[:n], *from)
 	}
 }
 
