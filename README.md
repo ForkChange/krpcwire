@@ -73,7 +73,7 @@ type OutQueryCallback func(req *OutRequest, res InResponse, timeout bool, from n
 ```go
 type OutRequest struct {
 	OutQuery
-	TransID TransID
+	TransID string
 	Y       string
 }
 ```
@@ -83,13 +83,6 @@ type OutRequest struct {
 
 ```go
 type OutResponse map[string]interface{}
-```
-
-
-#### type TransID
-
-```go
-type TransID string
 ```
 
 
@@ -110,23 +103,23 @@ func NewWire(socket *net.UDPConn, options ...option) *Wire
 #### func (*Wire) Cancel
 
 ```go
-func (w *Wire) Cancel(transID TransID)
+func (w *Wire) Cancel(transID string)
 ```
 
 #### func (*Wire) Error
 
 ```go
-func (w *Wire) Error(transID TransID, err OutError, to net.UDPAddr)
+func (w *Wire) Error(transID string, err OutError, to net.UDPAddr)
 ```
 
 #### func (*Wire) Query
 
 ```go
-func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) TransID
+func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) (transID string)
 ```
 
 #### func (*Wire) Reply
 
 ```go
-func (w *Wire) Reply(transID TransID, res OutResponse, to net.UDPAddr)
+func (w *Wire) Reply(transID string, res OutResponse, to net.UDPAddr)
 ```

@@ -23,14 +23,12 @@ type OutQuery struct {
 }
 type OutRequest struct {
 	OutQuery
-	TransID TransID
+	TransID string
 	Y       string
 }
 
 type InRequest map[string]interface{}
 type InResponse map[string]interface{}
-
-type TransID string
 
 type option func(*Wire)
 
@@ -41,10 +39,10 @@ type request struct {
 	message   *OutRequest
 }
 
-func randomTransID(n int) TransID {
+func randomTransID(n int) string {
 	b := make([]byte, n)
 	rand.Read(b)
-	return TransID(string(b))
+	return string(b)
 }
 
 func OnInQuery(on func(query InRequest, from net.UDPAddr)) option {
@@ -87,8 +85,8 @@ func NewWire(socket *net.UDPConn, options ...option) *Wire {
 	return w
 }
 
-func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) TransID {
-	transID := randomTransID(w.transIDSize)
+func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) (transID string) {
+	transID = randomTransID(w.transIDSize)
 	message := &OutRequest{
 		OutQuery: query,
 		TransID:  transID,
@@ -101,7 +99,7 @@ func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) TransI
 		message:   message,
 	}
 	w.send(map[string]interface{}{
-		"t": string(transID),
+		"t": transID,
 		"y": message.Y,
 		"q": message.Q,
 		"a": message.A,
@@ -110,23 +108,23 @@ func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) TransI
 	return transID
 }
 
-func (w *Wire) Reply(transID TransID, res OutResponse, to net.UDPAddr) {
+func (w *Wire) Reply(transID string, res OutResponse, to net.UDPAddr) {
 	w.send(map[string]interface{}{
-		"t": string(transID),
+		"t": transID,
 		"y": "r",
 		"r": map[string]interface{}(res),
 	}, to)
 }
 
-func (w *Wire) Error(transID TransID, err OutError, to net.UDPAddr) {
+func (w *Wire) Error(transID string, err OutError, to net.UDPAddr) {
 	w.send(map[string]interface{}{
-		"t": string(transID),
+		"t": transID,
 		"y": "e",
 		"e": []interface{}(err),
 	}, to)
 }
 
-func (w *Wire) Cancel(transID TransID) {
+func (w *Wire) Cancel(transID string) {
 	w.reqs.Delete(transID)
 }
 
@@ -178,11 +176,11 @@ func (w *Wire) onResponse(res InResponse, from net.UDPAddr) {
 	if !ok {
 		return
 	}
-	v, ok := w.reqs.Load(TransID(t))
+	v, ok := w.reqs.Load(t)
 	if !ok {
 		return
 	}
-	w.reqs.Delete(TransID(t))
+	w.reqs.Delete(t)
 	req := v.(*request)
 	now := time.Now()
 	if now.Sub(req.createdAt) > w.timeout {
