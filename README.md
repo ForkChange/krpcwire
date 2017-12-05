@@ -44,6 +44,13 @@ type InResponse map[string]interface{}
 ```
 
 
+#### type OnReply
+
+```go
+type OnReply func(req *OutRequest, res InResponse, timeout bool, from net.UDPAddr)
+```
+
+
 #### type OutError
 
 ```go
@@ -58,13 +65,6 @@ type OutQuery struct {
 	Q string
 	A map[string]interface{}
 }
-```
-
-
-#### type OutQueryCallback
-
-```go
-type OutQueryCallback func(req *OutRequest, res InResponse, timeout bool, from net.UDPAddr)
 ```
 
 
@@ -115,7 +115,7 @@ func (w *Wire) Error(transID string, err OutError, to net.UDPAddr)
 #### func (*Wire) Query
 
 ```go
-func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) (transID string)
+func (w *Wire) Query(query OutQuery, cb OnReply, to net.UDPAddr) (transID string)
 ```
 
 #### func (*Wire) Reply

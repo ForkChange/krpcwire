@@ -14,7 +14,7 @@ import (
 	"github.com/fanpei91/bencode"
 )
 
-type OutQueryCallback func(req *OutRequest, res InResponse, timeout bool, from net.UDPAddr)
+type OnReply func(req *OutRequest, res InResponse, timeout bool, from net.UDPAddr)
 type OutResponse map[string]interface{}
 type OutError []interface{}
 type OutQuery struct {
@@ -35,7 +35,7 @@ type option func(*Wire)
 type request struct {
 	createdAt time.Time
 	to        net.UDPAddr
-	callback  OutQueryCallback
+	callback  OnReply
 	message   *OutRequest
 }
 
@@ -85,7 +85,7 @@ func NewWire(socket *net.UDPConn, options ...option) *Wire {
 	return w
 }
 
-func (w *Wire) Query(query OutQuery, cb OutQueryCallback, to net.UDPAddr) (transID string) {
+func (w *Wire) Query(query OutQuery, cb OnReply, to net.UDPAddr) (transID string) {
 	transID = randomTransID(w.transIDSize)
 	message := &OutRequest{
 		OutQuery: query,
